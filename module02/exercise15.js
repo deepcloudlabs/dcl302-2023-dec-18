@@ -1,0 +1,3 @@
+// functional programming
+// filter/map/reduce/any/all/...
+// generative functions
