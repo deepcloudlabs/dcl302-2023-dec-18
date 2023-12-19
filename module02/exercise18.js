@@ -1,1 +1,1 @@
-// modularity
+// modularity: es6
