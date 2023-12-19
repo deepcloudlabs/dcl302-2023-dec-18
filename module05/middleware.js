@@ -1,4 +1,4 @@
-// curl -X POST "http://localhost:7100" -d "{\"lotteryMax\": 80, \"lotterySize\": 10}"
+// curl -X POST "http://localhost:7100" -d "{\"lotteryMax\": 80, \"lotterySize\": 6, \"column\": 100}"
 const http = require("http");
 const port = 7100;
 
