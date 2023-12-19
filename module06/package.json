@@ -5,7 +5,9 @@
   "main": "exercise01.js",
   "type": "module",
   "scripts": {
-    "exercise01": "nodemon exercise01.js"
+    "exercise01": "nodemon exercise01.js",
+    "exercise02": "nodemon exercise02.js",
+    "exercise03": "nodemon exercise03.js"
   },
   "dependencies": {
     "nodemon": "^3.0.2",
