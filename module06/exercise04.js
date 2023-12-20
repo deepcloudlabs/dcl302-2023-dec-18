@@ -27,11 +27,11 @@ const TradeSchema = new Schema({
     },
     bid: {
         type: Number,
-        required: true
+        required: false
     },
     ask: {
         type: Number,
-        required: true
+        required: false
     },
     timestamp: {
         type: Number,
@@ -42,18 +42,23 @@ const TradeSchema = new Schema({
         required: true
     }
 });
+const fieldMapper = {
+    s: "symbol",
+//    b: "bid",
+//    a: "ask",
+    p: "price",
+    q: "quantity",
+    t: "sequence",
+    T: "timestamp"
+};
 const Trade = model("trades", TradeSchema);
 const ws = new WebSocket(BINANCE_WS_URL);
 ws.on("message", frame => {
     const tradeReceived = JSON.parse(frame.toString());
     const tradeDto = {};
-    tradeDto.symbol = tradeReceived.s;
-    tradeDto.price = Number(tradeReceived.p);
-    tradeDto.quantity = Number(tradeReceived.q);
-    tradeDto.bid = tradeReceived.b;
-    tradeDto.ask = tradeReceived.a;
-    tradeDto.timestamp = tradeReceived.T;
-    tradeDto.sequence = tradeReceived.t;
+    for (const field in fieldMapper) {
+        tradeDto[fieldMapper[field]] = tradeReceived[field];
+    }
     tradeDto._id = new Types.ObjectId();
     let trade = new Trade(tradeDto);
     trade.save().then((err) => {
