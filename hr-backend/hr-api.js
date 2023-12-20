@@ -87,6 +87,9 @@ api.post("/hr/api/v1/employees", (req, res) => {
     employee.save().then(savedEmployee => {
         console.log("Employee is saved to the mongodb.");
         res.status(200).send({status: "OK"});
+        const hrEvent = {eventType: "EMPLOYEE_HIRED_EVENT", eventData: employeeBody};
+        const hrEventAsJson = JSON.stringify(hrEvent);
+        sessions.forEach(session => session.emit("hr-events", hrEventAsJson));
     }).catch(err => {
         console.log("error has occurred while saving the employee.");
         console.error(err);
@@ -189,12 +192,16 @@ api.patch("/hr/api/v1/employees/:identity", (req, res) => {
 api.delete("/hr/api/v1/employees/:identity", (req, res) => {
     const identity = req.params.identity;
     Employee.findOneAndDelete(
-        {"identityNo": identity}
+        {"identityNo": identity},{}
     ).then(emp => {
-        if (emp)
-            res.status(200).send(emp);
-        else
+        if (emp) {
+            res.status(200).send({status: "OK"});
+            const hrEvent = {eventType: "EMPLOYEE_FIRED_EVENT", eventData: emp};
+            const hrEventAsJson = JSON.stringify(hrEvent);
+            sessions.forEach(session => session.emit("hr-events", hrEventAsJson));
+        } else {
             res.status(404).send({status: "ERROR", reason: "Not found."});
+        }
     }).catch(err => {
         res.status(404).send({status: "ERROR", reason: "Not found."});
     });
@@ -205,4 +212,16 @@ api.delete("/hr/api/v1/employees/:identity", (req, res) => {
 
 api.listen(PORT, () => {
     console.log(`HR Rest API is running at port (${PORT})...`);
+})
+
+const {Server} = require("socket.io");
+const io = new Server(7200, {cors: {origin: "*"}});
+const sessions = [];
+io.on("connection", session => {
+    console.log(`New session is created: ${session.id}.`)
+    sessions.push(session);
+    io.on("disconnect", () => {
+        sessions.splice(0, sessions.length, sessions.filter(_session => _session.id !== session.id));
+        console.log(`The session (${session.id}) is closed.`)
+    });
 })
