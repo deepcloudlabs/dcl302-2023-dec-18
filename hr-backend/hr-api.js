@@ -43,7 +43,12 @@ const employeeSchema = new Schema({
         type: String,
         required: true,
         enum: ["IT", "Sales", "Finance", "HR"]
-    }
+    },
+    "fulltime": {
+        type: Boolean,
+        required: false,
+        default: true
+    },
 });
 //endregion
 
@@ -63,9 +68,13 @@ api.use(logger("dev"));
 api.use(cors({origin: "*"}));
 api.use(bodyParser.json({limit: "16mb"}))
 api.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerApiDoc))
+
+const updatableFields = ["fullname", "iban", "salary", "photo", "fulltime", "department"];
 //endregion
 
 //region REST [over HTTP] API
+
+//region POST /hr/api/v1/employees
 api.post("/hr/api/v1/employees", (req, res) => {
     const employeeBody = req.body;
     employeeBody._id = new Types.ObjectId();
@@ -79,6 +88,98 @@ api.post("/hr/api/v1/employees", (req, res) => {
         res.status(400).send({status: "ERROR", reason: err});
     });
 });
+//endregion
+
+//region GET /hr/api/v1/employees/:identity
+api.get("/hr/api/v1/employees/:identity", (req, res) => {
+    const identity = req.params.identity;
+    Employee.findOne(
+        {"identityNo": identity}
+    ).then(emp => {
+        if (emp)
+            res.status(200).send(emp);
+        else
+            res.status(404).send({status: "ERROR", reason: "Not found."});
+    }).catch(err => {
+        res.status(404).send({status: "ERROR", reason: "Not found."});
+    });
+});
+//endregion
+
+//region GET /hr/api/v1/employees?page=0&size=10
+api.get("/hr/api/v1/employees", (req, res) => {
+    const page = req.query.page || 0;
+    const size = req.query.size || 10;
+    const skip = page * size;
+    const limit = size;
+    Employee.find(
+        {},
+        {},
+        {skip, limit}
+    ).then(employees => {
+        res.status(200).send(employees);
+    }).catch(err => {
+        res.status(404).send({status: "ERROR", reason: "Not found."});
+    });
+});
+//endregion
+
+//region PUT /hr/api/v1/employees/:identity
+api.put("/hr/api/v1/employees/:identity", (req, res) => {
+    const identity = req.params.identity;
+    const employeeBody = req.body;
+    const updatableEmployeeBody = {};
+    for (const updatableField of updatableFields) {
+        if (employeeBody.hasOwnProperty(updatableField))
+            updatableEmployeeBody[updatableField] = employeeBody[updatableField];
+    }
+    Employee.updateOne(
+        {"identityNo": identity},
+        {"$set": updatableEmployeeBody},
+        {"upsert": false}
+    ).then(result => {
+        if (result.matchedCount > 0) {
+            console.log("Employee is updated to the mongodb.");
+            console.log(updatedEmployee)
+            res.status(200).send({status: "OK"});
+        } else {
+            res.status(404).send({status: "ERROR", reason: "Not found."});
+        }
+    }).catch(err => {
+        console.error(err);
+        res.status(400).send({status: "ERROR", reason: err});
+    });
+});
+//endregion
+
+//region PATCH /hr/api/v1/employees/:identity
+api.patch("/hr/api/v1/employees/:identity", (req, res) => {
+    const identity = req.params.identity;
+    const employeeBody = req.body;
+    const updatableEmployeeBody = {};
+    for (const updatableField of updatableFields) {
+        if (employeeBody.hasOwnProperty(updatableField))
+            updatableEmployeeBody[updatableField] = employeeBody[updatableField];
+    }
+    console.log(updatableEmployeeBody)
+    Employee.updateOne(
+        {"identityNo": identity},
+        {"$set": updatableEmployeeBody},
+        {"upsert": false}
+    ).then(result => {
+        console.log(result)
+        if (result.matchedCount > 0) {
+            console.log("Employee is updated to the mongodb.");
+            res.status(200).send({status: "OK"});
+        } else {
+            res.status(404).send({status: "ERROR", reason: "Not found."});
+        }
+    }).catch(err => {
+        console.error(err);
+        res.status(400).send({status: "ERROR", reason: err});
+    });
+});
+//endregion
 
 //endregion
 
