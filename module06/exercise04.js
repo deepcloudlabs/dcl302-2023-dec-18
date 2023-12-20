@@ -1,22 +1,17 @@
-import {connect, Schema} from "mongoose";
+import {connect, model, Schema, Types} from "mongoose";
 
 const BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
 import {WebSocket} from "ws";
 
-const ws = new WebSocket(BINANCE_WS_URL);
-ws.on("message", frame => {
-    const trade = JSON.parse(frame.toString());
-    console.log(trade);
-})
 
 connect(
     "mongodb://127.0.0.1:27017/algotrading",
     {
         "socketTimeoutMS": 0
     }
-).then( () => console.log("Connected to the database"));
+).then(() => console.log("Connected to the database"));
 
-const Trade = new Schema({
+const TradeSchema = new Schema({
     _id: Schema.Types.ObjectId,
     symbol: {
         type: String,
@@ -26,24 +21,43 @@ const Trade = new Schema({
         type: Number,
         required: true
     },
-    quantity:{
+    quantity: {
         type: Number,
         required: true
     },
-    bid:{
+    bid: {
         type: Number,
         required: true
     },
-    ask:{
+    ask: {
         type: Number,
         required: true
     },
-    timestamp:{
+    timestamp: {
         type: Number,
         required: true
     },
-    sequence:{
+    sequence: {
         type: Number,
         required: true
     }
 });
+const Trade = model("trades", TradeSchema);
+const ws = new WebSocket(BINANCE_WS_URL);
+ws.on("message", frame => {
+    const tradeReceived = JSON.parse(frame.toString());
+    const tradeDto = {};
+    tradeDto.symbol = tradeReceived.s;
+    tradeDto.price = Number(tradeReceived.p);
+    tradeDto.quantity = Number(tradeReceived.q);
+    tradeDto.bid = tradeReceived.b;
+    tradeDto.ask = tradeReceived.a;
+    tradeDto.timestamp = tradeReceived.T;
+    tradeDto.sequence = tradeReceived.t;
+    tradeDto._id = new Types.ObjectId();
+    let trade = new Trade(tradeDto);
+    trade.save().then((err) => {
+        if (err)
+            console.error(err)
+    });
+})
