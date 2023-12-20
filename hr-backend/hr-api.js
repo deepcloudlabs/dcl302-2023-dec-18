@@ -1,5 +1,5 @@
-const {connect, Schema, model} = require("mongoose");
-const {ibanValidator, tcKimlikNoValidator} = require("./validations");
+const {connect, Schema, model, Types} = require("mongoose");
+const {ibanValidator, tcKimlikNoValidator, NO_IMAGE} = require("./validations");
 
 //region MongoDB Connection
 connect(
@@ -11,14 +11,6 @@ connect(
 //endregion
 
 //region Define Schema
-const departmentSchema = new Schema({
-    "name": {
-        type: String,
-        required: false,
-        enum: ["IT", "Sales", "Finance", "HR"]
-    }
-});
-
 const employeeSchema = new Schema({
     "_id": Schema.Types.ObjectId,
     "fullname": {
@@ -33,8 +25,8 @@ const employeeSchema = new Schema({
     },
     "photo": {
         type: String,
-        required: false
-        // maxLength: 128000
+        required: false,
+        default: NO_IMAGE
     },
     "salary": {
         type: Number,
@@ -47,28 +39,49 @@ const employeeSchema = new Schema({
         required: true,
         validate: [ibanValidator, "You must provide a valid iban!"]
     },
-    "department": departmentSchema
+    "department": {
+        type: String,
+        required: true,
+        enum: ["IT", "Sales", "Finance", "HR"]
+    }
 });
 //endregion
 
 const Employee = model("employees", employeeSchema);
 
 //region API Configuration
-const PORT=7100;
+const PORT = 7100;
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const bodyParser = require("body-parser");
 const api = express();
-const swaggerApiDoc =require("./resources/swagger-hr.json");
+const swaggerApiDoc = require("./resources/swagger-hr.json");
 
 api.use(logger("dev"));
 api.use(cors({origin: "*"}));
-api.use(bodyParser.json({limit: "16m"}))
-api.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerApiDoc))
+api.use(bodyParser.json({limit: "16mb"}))
+api.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerApiDoc))
 //endregion
 
-api.listen(PORT,()=>{
+//region REST [over HTTP] API
+api.post("/hr/api/v1/employees", (req, res) => {
+    const employeeBody = req.body;
+    employeeBody._id = new Types.ObjectId();
+    const employee = new Employee(employeeBody);
+    employee.save().then(savedEmployee => {
+        console.log("Employee is saved to the mongodb.");
+        res.status(200).send({status: "OK"});
+    }).catch(err => {
+        console.log("error has occurred while saving the employee.");
+        console.error(err);
+        res.status(400).send({status: "ERROR", reason: err});
+    });
+});
+
+//endregion
+
+api.listen(PORT, () => {
     console.log(`HR Rest API is running at port (${PORT})...`);
 })
