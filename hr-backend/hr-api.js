@@ -34,6 +34,11 @@ const employeeSchema = new Schema({
         min: 2000,
         default: 2000
     },
+    "birthYear": {
+        type: Number,
+        required: true,
+        max: 2008
+    },
     "iban": {
         type: String,
         required: true,
@@ -140,7 +145,6 @@ api.put("/hr/api/v1/employees/:identity", (req, res) => {
     ).then(result => {
         if (result.matchedCount > 0) {
             console.log("Employee is updated to the mongodb.");
-            console.log(updatedEmployee)
             res.status(200).send({status: "OK"});
         } else {
             res.status(404).send({status: "ERROR", reason: "Not found."});
@@ -177,6 +181,22 @@ api.patch("/hr/api/v1/employees/:identity", (req, res) => {
     }).catch(err => {
         console.error(err);
         res.status(400).send({status: "ERROR", reason: err});
+    });
+});
+//endregion
+
+//region DELETE /hr/api/v1/employees/:identity
+api.delete("/hr/api/v1/employees/:identity", (req, res) => {
+    const identity = req.params.identity;
+    Employee.findOneAndDelete(
+        {"identityNo": identity}
+    ).then(emp => {
+        if (emp)
+            res.status(200).send(emp);
+        else
+            res.status(404).send({status: "ERROR", reason: "Not found."});
+    }).catch(err => {
+        res.status(404).send({status: "ERROR", reason: "Not found."});
     });
 });
 //endregion
