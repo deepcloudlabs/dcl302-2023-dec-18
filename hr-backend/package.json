@@ -4,7 +4,7 @@
   "description": "",
   "main": "hr-api.js",
   "scripts": {
-    "hr-api": "nodemon hr-api.js"
+    "hr-api": "node hr-api.js"
   },
   "dependencies": {
     "nodemon": "^3.0.2",
