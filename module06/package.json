@@ -7,12 +7,14 @@
   "scripts": {
     "exercise01": "nodemon exercise01.js",
     "exercise02": "nodemon exercise02.js",
-    "exercise03": "nodemon exercise03.js"
+    "exercise03": "nodemon exercise03.js",
+    "exercise04": "nodemon exercise04.js"
   },
   "dependencies": {
     "nodemon": "^3.0.2",
     "node-fetch": "^3.3.2",
-    "ws": "^8.15.1"
+    "ws": "^8.15.1",
+    "mongoose": "^8.0.3"
   },
   "keywords": [],
   "author": "",
