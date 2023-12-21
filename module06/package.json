@@ -7,14 +7,16 @@
   "scripts": {
     "exercise01": "nodemon exercise01.js",
     "exercise02": "nodemon exercise02.js",
-    "exercise03": "nodemon exercise03.js",
-    "exercise04": "nodemon exercise04.js"
+    "exercise03": "node exercise03.js",
+    "exercise04": "set UV_THREADPOOL_SIZE=250 & node exercise04.js",
+    "exercise05": "node exercise05.js"
   },
   "dependencies": {
     "nodemon": "^3.0.2",
     "node-fetch": "^3.3.2",
     "ws": "^8.15.1",
-    "mongoose": "^8.0.3"
+    "mongoose": "^8.0.3",
+    "amqplib": "^0.10.3"
   },
   "keywords": [],
   "author": "",
