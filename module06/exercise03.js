@@ -1,10 +1,20 @@
-const BINANCE_WS_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
-import {WebSocket} from "ws";
-const trade1 = {e: 'trade', E: 1702989154493, s: 'BTCUSDT', t: 3328121364, p: '42946.66000000', q: '0.00015000', b: 23820477537, a: 23820478209, T: 1702989154466, m: true, M: true};
-const trade2 = {e: 'trade', E: 1702989154493, s: 'BTCUSDT', t: 3328121365, p: '42946.60000000', q: '0.00062000', b: 23820454001, a: 23820478209, T: 1702989154466, m: true, M: true}
+import Websocket from 'ws';
+import amqp from 'amqplib';
 
-const ws = new WebSocket(BINANCE_WS_URL);
-ws.on("message", frame => {
-    const trade = JSON.parse(frame.toString());
-    console.log(trade);
-})
+const binanceWssUrl = "wss://stream.binance.com:9443/ws/btcusdt@trade";
+const ws = new Websocket(binanceWssUrl);
+
+amqp.connect('amqp://guest:guest@127.0.0.1:5672')
+    .then((connection) => {
+      console.log("Connected to rabbitmq.")
+      connection.createChannel().then((channel) => {
+        console.log("Channel is created.")
+        ws.on('message', (frame) => {
+            let trade = JSON.parse(frame);
+            trade.volume = Number(trade.p) * Number(trade.q);
+            console.log(trade)
+            channel.publish('tradex', '', Buffer.from(JSON.stringify(trade)));
+        }).catch(console.error);
+    })
+    .catch(console.error);
+});
