@@ -77,6 +77,20 @@ api.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerApiDoc))
 const updatableFields = ["fullname", "iban", "salary", "photo", "fulltime", "department"];
 //endregion
 
+//region KAFKA CONFIGURATION
+const {Kafka, Partitioners} = require("kafkajs");
+const kafka = new Kafka({
+    clientId: "hr-backend-producer",
+    brokers: ["127.0.0.1:9092"]
+});
+const producer = kafka.producer({
+    createPartitioner: Partitioners.LegacyPartitioner
+});
+producer.connect()
+        .then(()=>console.log("Connected to the kafka server."))
+        .catch(err => console.error(err));
+//endregion
+
 //region REST [over HTTP] API
 
 //region POST /hr/api/v1/employees
@@ -89,7 +103,19 @@ api.post("/hr/api/v1/employees", (req, res) => {
         res.status(200).send({status: "OK"});
         const hrEvent = {eventType: "EMPLOYEE_HIRED_EVENT", eventData: employeeBody};
         const hrEventAsJson = JSON.stringify(hrEvent);
+        // send the event through ws
         sessions.forEach(session => session.emit("hr-events", hrEventAsJson));
+        // send the event through kafka
+        producer.send({
+            topic: "hr-events",
+            messages: [
+                {key: employeeBody.identityNo, value: hrEventAsJson}
+            ]
+        }).then(() => {
+            console.log("Event is sent through kafka.");
+        }).catch(err => {
+            console.error(err);
+        });
     }).catch(err => {
         console.log("error has occurred while saving the employee.");
         console.error(err);
@@ -192,13 +218,25 @@ api.patch("/hr/api/v1/employees/:identity", (req, res) => {
 api.delete("/hr/api/v1/employees/:identity", (req, res) => {
     const identity = req.params.identity;
     Employee.findOneAndDelete(
-        {"identityNo": identity},{}
+        {"identityNo": identity}, {}
     ).then(emp => {
         if (emp) {
             res.status(200).send({status: "OK"});
             const hrEvent = {eventType: "EMPLOYEE_FIRED_EVENT", eventData: emp};
             const hrEventAsJson = JSON.stringify(hrEvent);
+            // send the event through ws
             sessions.forEach(session => session.emit("hr-events", hrEventAsJson));
+            // send the event through kafka
+            producer.send({
+                topic: "hr-events",
+                messages: [
+                    {key: identity, value: hrEventAsJson}
+                ]
+            }).then(() => {
+                console.log("Event is sent through kafka.");
+            }).catch(err => {
+                console.error(err);
+            });
         } else {
             res.status(404).send({status: "ERROR", reason: "Not found."});
         }
